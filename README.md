@@ -2,14 +2,12 @@
 
 # GKV
 
-GKV is a git inspired key value store.
+GKV is a Git inspired key value store.
 
 ## Motivation
 
-The main goal is to provide a simple subset of git that is suitable as a key
-value store for distributed applications with small databases (i.e. less than 1
-million records). The prime example of this are multi-device applications with
-offline support that use 1 database per user.
+The main goal is to create a simple database suitable for offline usage across
+many devices with good support for syncing and conflict resolution.
 
 ## Comparison to similar projects
 
@@ -28,6 +26,8 @@ Additionally git includes many advanced optimizations such as pack files which
 makes it non-trivial to create native clients.
 
 ### CouchDB
+
+To be written ...
 
 ## Objects
 
