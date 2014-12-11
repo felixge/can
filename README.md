@@ -68,7 +68,6 @@ ABNF:
 
 ```
 index   = "index " size "\n" 1*(keysize " " key " " valref "\n")
-number  = 1*DIGIT
 size    = number
 keysize = number
 key     = binary
