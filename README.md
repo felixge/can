@@ -11,6 +11,24 @@ value store for distributed applications with small databases (i.e. less than 1
 million records). The prime example of this are multi-device applications with
 offline support that use 1 database per user.
 
+## Comparison to similar projects
+
+### Git
+
+Each git commit references a full tree object. This works fine for git, as most
+repositories are laid out in a hierarchical manner, causing the top level tree
+object to be usually small. A key value store however may have hundreds of
+thousands of top level keys and without hierarchies. For this reason GKV
+commits reference partial indexes, which include only the key value pairs that
+have changed. This greatly reduces the costs for writing and syncing data, but
+introduces a O(N) cost for naive key lookups. This will be improved by adding
+support for referencing full indexes from commits in the future.
+
+Additionally git includes many advanced optimizations such as pack files which
+makes it non-trivial to create native clients.
+
+### CouchDB
+
 ## Objects
 
 GKV uses the following object types for storing data:
