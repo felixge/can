@@ -77,6 +77,5 @@ value     = binary
 Example:
 
 ```
-TODO
+"commit 97\0partial c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\n"
 ```
-
