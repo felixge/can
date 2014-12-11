@@ -43,6 +43,7 @@ The basic object format is given in ABNF with the following recurring rules:
 number = 1*DIGIT
 binary = *%x00-ff
 hash   = 1*(DIGIT / "a" / "b" / "c" / "d" / "e" / "f")
+time   = @TODO RFC3339 ABNF
 ```
 
 ### Blob
@@ -85,11 +86,14 @@ Example:
 ABNF:
 
 ```
-commit    = "commit" size %x00 *1("partial " indexref "\n") *2("parent " commitref "\n")
+commit    = "commit" size %x00
+            "time " time "\n"
+            *1("partial " indexref "\n")
+            *2("parent " commitref "\n")
+size      = number
+time      = rfc3339
 indexref  = hash
 commitref = hash
-size      = number
-value     = binary
 ```
 
 Example:
