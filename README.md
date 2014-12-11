@@ -1,4 +1,4 @@
-**Work in progress:** Nothing to see here yet.
+**Work in progress:** Nothing to see here yet. This is highly experimental.
 
 # GKV
 
