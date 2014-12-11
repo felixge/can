@@ -67,7 +67,7 @@ Example:
 ABNF:
 
 ```
-index   = "index " size "\n" 1*(keysize %x00 key valref "\n")
+index   = "index " size "\n" 1*(keysize " " key " " valref "\n")
 number  = 1*DIGIT
 size    = number
 keysize = number
@@ -78,7 +78,7 @@ valref  = hash
 Example:
 
 ```
-"index 9\n3\0foobar\n"
+"index 10\n3 foo bar\n"
 ```
 
 ### Commit
