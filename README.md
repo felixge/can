@@ -15,7 +15,7 @@ supporting up to 1 million records.
 Each git commit references a full tree object. This works fine for git, as most
 repositories are laid out in a hierarchical manner, causing the top level tree
 object to be usually small. A key value store however may have hundreds of
-thousands of top level keys and without hierarchies. For this reason GKV
+thousands of top level keys without any hierarchies. For this reason GKV
 commits reference partial indexes, which include only the key value pairs that
 have changed. This greatly reduces the costs for writing and syncing data, but
 introduces a O(N) cost for naive key lookups. This will be improved by adding
