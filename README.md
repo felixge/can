@@ -18,8 +18,9 @@ object to be usually small. A key value store however may have hundreds of
 thousands of top level keys without any hierarchies. For this reason GKV
 commits reference partial indexes, which include only the key value pairs that
 have changed. This greatly reduces the costs for writing and syncing data, but
-introduces a O(N) cost for naive key lookups. This will be improved by adding
-support for referencing full indexes from commits in the future.
+introduces a O(N) cost for naive key lookups. However, this can be turned into
+a one time costs by keeping a cache of the current index, and references to
+full indexes from commits will be supported in the future as well.
 
 Additionally git includes many advanced optimizations such as pack files which
 makes it non-trivial to create native clients.
