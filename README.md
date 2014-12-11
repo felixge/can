@@ -19,8 +19,7 @@ GKV uses the following object types for storing data:
 * index: Maps key strings to value hashes. Similar to trees in git.
 * commit: References previous commits and indexes.
 
-The basic object format is described using ABNF notation with the following
-reocuring rules:
+The basic object format is given in ABNF with the following reocuring rules:
 
 ```
 number = 1*DIGIT
@@ -41,7 +40,7 @@ value  = binary
 Example:
 
 ```
-"blob 11\0Hello world
+"blob 11\0Hello world"
 ```
 
 ### Index
@@ -62,3 +61,22 @@ Example:
 ```
 "index 9\03\0foobar\n"
 ```
+
+### Commit
+
+ABNF:
+
+```
+commit    = "commit" size %x00 *1("partial " indexref "\n") *2("parent " commitref "\n")
+indexref  = hash
+commitref = hash
+size      = number
+value     = binary
+```
+
+Example:
+
+```
+TODO
+```
+
