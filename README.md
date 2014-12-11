@@ -37,7 +37,7 @@ GKV uses the following object types for storing data:
 * index: Maps key strings to value hashes. Similar to trees in git.
 * commit: References previous commits and indexes.
 
-The basic object format is given in ABNF with the following reocuring rules:
+The basic object format is given in ABNF with the following recurring rules:
 
 ```
 number = 1*DIGIT
