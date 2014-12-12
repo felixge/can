@@ -2,13 +2,13 @@
 
 # GKV
 
-GKV is a Git inspired key value store.
+GKV is a Git inspired low-level key value store.
 
 ## Comparison to similar projects
 
-The main goal of GKV is to create a simple database suitable for offline usage
-across many devices with good support for syncing and conflict resolution
-supporting up to 1 million records.
+The main goal of GKV is to create a simple low-level database suitable for
+offline usage across many devices with good support for syncing and conflict
+resolution supporting up to 1 million records.
 
 ### Git
 
