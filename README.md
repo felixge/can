@@ -40,10 +40,12 @@ GKV uses the following object types for storing data:
 The basic object format is given in ABNF with the following recurring rules:
 
 ```
-number = 1*DIGIT
-binary = *%x00-ff
-hash   = 1*(DIGIT / "a" / "b" / "c" / "d" / "e" / "f") ; arbitrary length to support different hash algorithms
-time   = 1*DIGIT " " + ( "+" / "-" ) 2DIGIT ":" 2DIGIT ; UTC unix timestamp in seconds, followed by hour:minute offset
+number    = 1*DIGIT
+binary    = *%x00-ff
+hash      = 1*(DIGIT / "a" / "b" / "c" / "d" / "e" / "f") ; arbitrary length to support different hash algorithms
+time      = timestamp " " + ( "+" / "-" ) offset          ; unix UTC timestamp in seconds, followed by zone offset in seconds
+timestamp = number
+offset    = number
 ```
 
 ### Blob
@@ -98,5 +100,5 @@ commitref = hash
 Example:
 
 ```
-"commit 120\ntime 1418327450 +01:00\npartial c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\n"
+"commit 120\ntime 1418327450 +3600\npartial c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\n"
 ```
