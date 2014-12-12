@@ -43,9 +43,9 @@ The basic object format is given in ABNF with the following recurring rules:
 number    = 1*DIGIT
 binary    = *%x00-ff
 hash      = 1*(DIGIT / "a" / "b" / "c" / "d" / "e" / "f") ; arbitrary length to support different hash algorithms
-time      = timestamp " " + ( "+" / "-" ) offset          ; unix UTC timestamp in seconds, followed by zone offset in seconds
+time      = timestamp " " offset                          ; unix UTC timestamp in seconds, followed by zone offset in seconds
 timestamp = number
-offset    = number
+offset    = ( "+" / "-" ) number
 ```
 
 ### Blob
