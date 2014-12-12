@@ -87,14 +87,14 @@ Example:
 ABNF:
 
 ```
-commit    = "commit" size "\n"
-            "time " time "\n"
+commit     = "commit" size "\n"
+            "time " committime "\n"
             *1("partial " indexref "\n")
             *2("parent " commitref "\n")
-size      = number
-time      = rfc3339
-indexref  = hash
-commitref = hash
+size       = number
+committime = time
+indexref   = hash
+commitre f = hash
 ```
 
 Example:
