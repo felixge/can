@@ -94,7 +94,7 @@ commit     = "commit" size "\n"
 size       = number
 committime = time
 indexref   = hash
-commitre f = hash
+commitref  = hash
 ```
 
 Example:
