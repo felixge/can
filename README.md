@@ -19,8 +19,7 @@ thousands of top level keys without any hierarchies. For this reason GKV
 commits reference partial indexes, which include only the key value pairs that
 have changed. This greatly reduces the costs for writing and syncing data, but
 introduces a O(N) cost for naive key lookups. However, this can be turned into
-a one time costs by keeping a cache of the current index, and references to
-full indexes from commits will be supported in the future as well.
+a one time costs by keeping a cache of the current index.
 
 Additionally git includes many advanced optimizations such as pack files which
 makes it non-trivial to create native clients.
@@ -89,7 +88,7 @@ ABNF:
 ```
 commit     = "commit" size "\n"
             "time " committime "\n"
-            *1("partial " indexref "\n")
+            *1("index " indexref "\n")
             *2("parent " commitref "\n")
 size       = number
 committime = time
@@ -100,5 +99,5 @@ commitref  = hash
 Example:
 
 ```
-"commit 120\ntime 1418327450 +3600\npartial c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\n"
+"commit 118\ntime 1418327450 +3600\nindex c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\n"
 ```
