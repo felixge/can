@@ -52,7 +52,7 @@ offset    = ( "+" / "-" ) number
 ABNF:
 
 ```
-blob   = "blob " size "\n" value
+blob   = "blob " size "\n" value "\n"
 size   = number
 value  = binary
 ```
@@ -60,7 +60,7 @@ value  = binary
 Example:
 
 ```
-"blob 11\nHello world"
+"blob 12\nHello world\n"
 ```
 
 ### Index
@@ -68,11 +68,11 @@ Example:
 ABNF:
 
 ```
-index   = "index " size "\n" 1*(keysize " " key " " valref "\n")
-size    = number
-keysize = number
-key     = binary
-valref  = hash
+index    = "index " size "\n" 1*(keysize " " key " " blob_id "\n")
+size     = number
+keysize  = number
+key      = binary
+blob_id  = hash
 ```
 
 Example:
@@ -86,14 +86,14 @@ Example:
 ABNF:
 
 ```
-commit     = "commit" size "\n"
-            "time " committime "\n"
-            *1("index " indexref "\n")
-            *2("parent " commitref "\n")
-size       = number
-committime = time
-indexref   = hash
-commitref  = hash
+commit      = "commit" size "\n"
+             "time " commit_time "\n"
+             *1("index " index_id "\n")
+             1*2("parent " commit_id "\n")
+size        = number
+commit_time = time
+index_id    = hash
+commit_id   = hash
 ```
 
 Example:
