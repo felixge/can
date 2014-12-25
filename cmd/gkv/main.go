@@ -30,6 +30,8 @@ func realMain() error {
 		return cmdLs(repo)
 	case "log":
 		return cmdLog(repo)
+	case "rm":
+		return cmdRm(repo, flag.Arg(1))
 	case "get":
 		return cmdGet(repo, flag.Arg(1))
 	case "set":
@@ -58,7 +60,9 @@ func cmdLs(repo *gkv.Repo) error {
 			if known[key] {
 				continue
 			}
-			fmt.Printf("%s %s\n", blobID, key)
+			if blobID != gkv.NilID {
+				fmt.Printf("%s %s\n", blobID, key)
+			}
 			known[key] = true
 		}
 		head = commit.Parent()
@@ -108,6 +112,22 @@ func cmdLog(repo *gkv.Repo) error {
 		}
 		fmt.Printf("\n")
 	}
+}
+
+func cmdRm(repo *gkv.Repo, key string) error {
+	index := gkv.NewIndex(map[string]gkv.ID{key: gkv.NilID})
+	if err := repo.Save(index); err != nil {
+		return err
+	}
+	head, err := repo.Head()
+	if err != nil && !gkv.IsNotExist(err) {
+		return err
+	}
+	commit := gkv.NewCommit(time.Now(), index.ID(), head)
+	if err := repo.Save(commit); err != nil {
+		return err
+	}
+	return repo.SetHead(commit.ID())
 }
 
 func cmdGet(repo *gkv.Repo, key string) error {
