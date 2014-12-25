@@ -41,7 +41,7 @@ The basic object format is given in ABNF with the following recurring rules:
 ```
 number    = 1*DIGIT
 binary    = *%x00-ff
-hash      = 1*(DIGIT / "a" / "b" / "c" / "d" / "e" / "f") ; arbitrary length to support different hash algorithms
+id        = 20(DIGIT / "a" / "b" / "c" / "d" / "e" / "f")
 time      = timestamp " " offset ; unix UTC timestamp in seconds, followed by zone offset in seconds
 timestamp = number
 offset    = ( "+" / "-" ) number
@@ -72,7 +72,7 @@ index    = "index " size "\n" 1*(keysize " " key " " blob_id "\n")
 size     = number
 keysize  = number
 key      = binary
-blob_id  = hash
+blob_id  = id
 ```
 
 Example:
@@ -92,8 +92,8 @@ commit      = "commit" size "\n"
              1*2("parent " commit_id "\n")
 size        = number
 commit_time = time
-index_id    = hash
-commit_id   = hash
+index_id    = id
+commit_id   = id
 ```
 
 Example:
