@@ -7,9 +7,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 )
+
+var NilID = ID{}
+
+func IsNotExist(err error) bool {
+	return os.IsNotExist(err)
+}
 
 func NewID(o Object) ID {
 	return sha1.Sum(o.Raw())
@@ -39,24 +46,27 @@ type Object interface {
 	Raw() []byte
 }
 
-func NewRepository(b Backend) *Repository {
-	return &Repository{backend: b}
+func NewRepo(b Backend) *Repo {
+	return &Repo{backend: b}
 }
 
-type Repository struct {
+type Repo struct {
 	backend Backend
-	index   *Index
 }
 
-func (r *Repository) Head() (ID, error) {
-	return r.backend.Head()
+func (r *Repo) Head() (ID, error) {
+	head, err := r.backend.Load("HEAD")
+	if err != nil {
+		return ID{}, err
+	}
+	return ParseId(string(head))
 }
 
-func (r *Repository) SetHead(id ID) error {
-	return r.backend.SetHead(id)
+func (r *Repo) SetHead(id ID) error {
+	return r.backend.Save("HEAD", []byte(id.String()))
 }
 
-func (r *Repository) Commit(id ID) (*Commit, error) {
+func (r *Repo) Commit(id ID) (*Commit, error) {
 	obj, err := r.Load(id)
 	if err != nil {
 		return nil, err
@@ -67,7 +77,7 @@ func (r *Repository) Commit(id ID) (*Commit, error) {
 	}
 }
 
-func (r *Repository) Index(id ID) (*Index, error) {
+func (r *Repo) Index(id ID) (*Index, error) {
 	obj, err := r.Load(id)
 	if err != nil {
 		return nil, err
@@ -78,12 +88,23 @@ func (r *Repository) Index(id ID) (*Index, error) {
 	}
 }
 
-func (r *Repository) Save(o Object) error {
-	return r.backend.SaveObject(o.ID(), o.Raw())
+func (r *Repo) Blob(id ID) (*Blob, error) {
+	obj, err := r.Load(id)
+	if err != nil {
+		return nil, err
+	} else if blob, ok := obj.(*Blob); !ok {
+		return nil, fmt.Errorf("unexpected type: %T", obj)
+	} else {
+		return blob, nil
+	}
 }
 
-func (r *Repository) Load(id ID) (Object, error) {
-	raw, err := r.backend.GetObject(id)
+func (r *Repo) Save(o Object) error {
+	return r.backend.Save(r.objectPath(o.ID()), o.Raw())
+}
+
+func (r *Repo) Load(id ID) (Object, error) {
+	raw, err := r.backend.Load(r.objectPath(id))
 	if err != nil {
 		return nil, err
 	}
@@ -96,17 +117,21 @@ func (r *Repository) Load(id ID) (Object, error) {
 		return nil, err
 	}
 	switch kind {
+	case "blob":
+		val := buf.Bytes()
+		val = val[0 : len(val)-1]
+		return &Blob{val: val}, nil
 	case "commit":
 		var (
 			sec    int64
 			offset int
-			index  string
 		)
 		// @TODO support negative offset
 		if _, err := fmt.Fscanf(buf, "time %d %d\n", &sec, &offset); err != nil {
 			return nil, err
 		}
 		t := time.Unix(sec, 0).In(time.FixedZone("", offset))
+		var index string
 		if _, err := fmt.Fscanf(buf, "index %s\n", &index); err != nil {
 			return nil, err
 		}
@@ -114,11 +139,47 @@ func (r *Repository) Load(id ID) (Object, error) {
 		if err != nil {
 			return nil, fmt.Errorf("bad index: %s", err)
 		}
-		commit := &Commit{time: t, index: indexID}
-		return commit, nil
+		var parent string
+		if _, err := fmt.Fscanf(buf, "parent %s\n", &parent); err != nil {
+			return nil, err
+		}
+		parentID, err := ParseId(parent)
+		if err != nil {
+			return nil, fmt.Errorf("bad parent: %s", err)
+		}
+		return &Commit{time: t, index: indexID, parents: []ID{parentID}}, nil
+	case "index":
+		entries := map[string]ID{}
+		for buf.Len() > 0 {
+			var keySize int
+			if _, err := fmt.Fscanf(buf, "%d ", &keySize); err != nil {
+				return nil, err
+			}
+			key := make([]byte, keySize)
+			if n, err := buf.Read(key); err != nil {
+				return nil, err
+			} else if n != keySize {
+				return nil, fmt.Errorf("short read")
+			}
+			var blobIDStr string
+			if _, err := fmt.Fscanf(buf, " %s\n", &blobIDStr); err != nil {
+				return nil, err
+			}
+			blobID, err := ParseId(blobIDStr)
+			if err != nil {
+				return nil, err
+			}
+			entries[string(key)] = blobID
+		}
+		return &Index{entries: entries}, nil
 	default:
 		return nil, fmt.Errorf("unknown object kind: %s", kind)
 	}
+}
+
+func (r *Repo) objectPath(id ID) string {
+	idS := id.String()
+	return path.Join("objects", idS[0:2], idS[2:])
 }
 
 func NewIndex(entries map[string]ID) *Index {
@@ -131,6 +192,14 @@ type Index struct {
 
 func (idx *Index) ID() ID {
 	return NewID(idx)
+}
+
+func (idx *Index) Entries() map[string]ID {
+	cp := make(map[string]ID, len(idx.entries))
+	for key, val := range idx.entries {
+		cp[key] = val
+	}
+	return cp
 }
 
 func (idx *Index) Raw() []byte {
@@ -158,6 +227,14 @@ func (c *Commit) ID() ID {
 
 func (c *Commit) Index() ID {
 	return c.index
+}
+
+func (c *Commit) Time() time.Time {
+	return c.time
+}
+
+func (c *Commit) Parent() ID {
+	return c.parents[0]
 }
 
 func (c *Commit) Raw() []byte {
@@ -193,14 +270,13 @@ func (b *Blob) Val() []byte {
 }
 
 func (b *Blob) Raw() []byte {
-	return []byte(fmt.Sprintf("blob %d\n%s", len(b.val), b.val))
+	return []byte(fmt.Sprintf("blob %d\n%s\n", len(b.val), b.val))
 }
 
 type Backend interface {
-	GetObject(id ID) ([]byte, error)
-	SaveObject(id ID, raw []byte) error
-	Head() (ID, error)
-	SetHead(ID) error
+	Load(path string) ([]byte, error)
+	Save(path string, data []byte) error
+	List(path string) ([]string, error)
 }
 
 func NewFileBackend(dir string) Backend {
@@ -211,26 +287,16 @@ type FileBackend struct {
 	dir string
 }
 
-func (f *FileBackend) GetObject(id ID) ([]byte, error) {
-	return ioutil.ReadFile(f.objectPath(id))
+func (f *FileBackend) Load(path string) ([]byte, error) {
+	return ioutil.ReadFile(filepath.Join(f.dir, path))
 }
 
-func (f *FileBackend) SaveObject(id ID, raw []byte) error {
-	return f.writeAtomic(f.objectPath(id), raw)
+func (f *FileBackend) Save(path string, data []byte) error {
+	return f.writeAtomic(filepath.Join(f.dir, path), data)
 }
 
-func (f *FileBackend) Head() (ID, error) {
-	id := ID{}
-	data, err := ioutil.ReadFile(f.headPath())
-	if err != nil {
-		return id, err
-	}
-	copy(id[:], data)
-	return id, nil
-}
-
-func (f *FileBackend) SetHead(id ID) error {
-	return f.writeAtomic(f.headPath(), id[:])
+func (f *FileBackend) List(path string) ([]string, error) {
+	return nil, nil
 }
 
 func (f *FileBackend) writeAtomic(path string, data []byte) error {
@@ -247,13 +313,4 @@ func (f *FileBackend) writeAtomic(path string, data []byte) error {
 		return err
 	}
 	return nil
-}
-
-func (f *FileBackend) headPath() string {
-	return filepath.Join(f.dir, "HEAD")
-}
-
-func (f *FileBackend) objectPath(id ID) string {
-	s := id.String()
-	return filepath.Join(f.dir, "objects", s[0:2], s[2:])
 }
