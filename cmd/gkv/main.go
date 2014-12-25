@@ -24,6 +24,9 @@ func realMain() error {
 	backend := gkv.NewFileBackend(*dir)
 	repo := gkv.NewRepo(backend)
 	switch cmd := flag.Arg(0); cmd {
+	case "clone":
+		remote := gkv.NewRepo(gkv.NewFileBackend(flag.Arg(1)))
+		return cmdClone(repo, remote)
 	case "show":
 		return cmdShow(repo, flag.Arg(1))
 	case "ls":
@@ -38,6 +41,46 @@ func realMain() error {
 		return cmdSet(repo, flag.Arg(1), flag.Arg(2))
 	default:
 		return fmt.Errorf("unknown cmd: %s", cmd)
+	}
+}
+
+func cmdClone(local, remote *gkv.Repo) error {
+	if _, err := local.Head(); err == nil {
+		return fmt.Errorf("refusing to clone into existing repo")
+	} else if !gkv.IsNotExist(err) {
+		return err
+	}
+	head, err := remote.Head()
+	if err != nil {
+		return err
+	}
+	remoteHead := head
+	for {
+		commit, err := remote.Commit(head)
+		if err != nil {
+			return err
+		} else if err := local.Save(commit); err != nil {
+			return err
+		}
+		index, err := remote.Index(commit.Index())
+		if err != nil {
+			return err
+		} else if err := local.Save(index); err != nil {
+			return err
+		}
+		for _, blobID := range index.Entries() {
+			if blobID == gkv.NilID {
+				continue
+			} else if blob, err := remote.Blob(blobID); err != nil {
+				return err
+			} else if err := local.Save(blob); err != nil {
+				return err
+			}
+		}
+		head = commit.Parent()
+		if head == gkv.NilID {
+			return local.SetHead(remoteHead)
+		}
 	}
 }
 
