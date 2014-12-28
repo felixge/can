@@ -124,35 +124,40 @@ func (r *Repo) objectPath(id ID) string {
 	return path.Join("objects", idS[0:2], idS[2:])
 }
 
-func NewIndex(entries map[string]ID) *Index {
+func NewIndex(entries IndexEntries) *Index {
+	sort.Sort(entries)
 	return &Index{entries: entries}
 }
 
+type IndexEntries []IndexEntry
+
+func (kv IndexEntries) Less(i, j int) bool { return kv[i].Key < kv[j].Key }
+func (kv IndexEntries) Swap(i, j int)      { kv[i], kv[j] = kv[j], kv[i] }
+func (kv IndexEntries) Len() int           { return len(kv) }
+
+type IndexEntry struct {
+	Key string
+	ID  ID
+}
+
 type Index struct {
-	entries map[string]ID
+	entries IndexEntries
 }
 
 func (idx *Index) ID() ID {
 	return NewID(idx)
 }
 
-func (idx *Index) Entries() map[string]ID {
-	cp := make(map[string]ID, len(idx.entries))
-	for key, val := range idx.entries {
-		cp[key] = val
-	}
+func (idx *Index) Entries() IndexEntries {
+	cp := make(IndexEntries, len(idx.entries))
+	copy(cp, idx.entries)
 	return cp
 }
 
 func (idx *Index) Canonical() []byte {
-	var keys = make(sort.StringSlice, 0, len(idx.entries))
-	for key, _ := range idx.entries {
-		keys = append(keys, key)
-	}
-	sort.Sort(keys)
 	buf := bytes.NewBuffer(nil)
-	for _, key := range keys {
-		fmt.Fprintf(buf, "%d %s %s\n", len(key), key, idx.entries[key])
+	for _, entry := range idx.entries {
+		fmt.Fprintf(buf, "%d %s %s\n", len(entry.Key), entry.Key, entry.ID)
 	}
 	header := []byte(fmt.Sprintf("index %d\n", buf.Len()))
 	return append(header, buf.Bytes()...)

@@ -46,7 +46,7 @@ func (d *Decoder) decode() (Object, error) {
 		}
 	case "index":
 		r := newByteCounter(d.r)
-		entries := map[string]ID{}
+		var entries IndexEntries
 		for r.Count() < size {
 			if keySize, err := readInt64(r, false, ' '); err != nil {
 				return nil, err
@@ -59,7 +59,7 @@ func (d *Decoder) decode() (Object, error) {
 			} else if _, err := readOneOf(r, "\n"); err != nil {
 				return nil, err
 			} else {
-				entries[key] = id
+				entries = append(entries, IndexEntry{Key: key, ID: id})
 			}
 		}
 		return NewIndex(entries), nil

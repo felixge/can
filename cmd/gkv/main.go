@@ -91,10 +91,10 @@ func cmdClone(local, remote *gkv.Repo) error {
 		} else if err := local.Save(index); err != nil {
 			return err
 		}
-		for _, blobID := range index.Entries() {
-			if blobID == gkv.NilID {
+		for _, entry := range index.Entries() {
+			if entry.ID == gkv.NilID {
 				continue
-			} else if blob, err := remote.Blob(blobID); err != nil {
+			} else if blob, err := remote.Blob(entry.ID); err != nil {
 				return err
 			} else if err := local.Save(blob); err != nil {
 				return err
@@ -122,14 +122,14 @@ func cmdLs(repo *gkv.Repo) error {
 		if err != nil {
 			return err
 		}
-		for key, blobID := range index.Entries() {
-			if known[key] {
+		for _, entry := range index.Entries() {
+			if known[entry.Key] {
 				continue
 			}
-			if blobID != gkv.NilID {
-				fmt.Printf("%s %s\n", blobID, key)
+			if entry.ID != gkv.NilID {
+				fmt.Printf("%s %s\n", entry.ID, entry.Key)
 			}
-			known[key] = true
+			known[entry.Key] = true
 		}
 		head = commit.Parent()
 		if head == gkv.NilID {
@@ -172,8 +172,8 @@ func cmdLog(repo *gkv.Repo) error {
 		if err != nil {
 			return err
 		}
-		for key, blobID := range index.Entries() {
-			fmt.Printf("  %s %s\n", blobID, key)
+		for _, entry := range index.Entries() {
+			fmt.Printf("  %s %s\n", entry.ID, entry.Key)
 		}
 		heads := commit.Parents()
 		if len(heads) == 0 {
@@ -185,7 +185,7 @@ func cmdLog(repo *gkv.Repo) error {
 }
 
 func cmdRm(repo *gkv.Repo, key string) error {
-	index := gkv.NewIndex(map[string]gkv.ID{key: gkv.NilID})
+	index := gkv.NewIndex(gkv.IndexEntries{{Key: key}})
 	if err := repo.Save(index); err != nil {
 		return err
 	}
@@ -214,11 +214,11 @@ func cmdGet(repo *gkv.Repo, key string) error {
 		if err != nil {
 			return err
 		}
-		for indexKey, blobID := range index.Entries() {
-			if indexKey != key {
+		for _, entry := range index.Entries() {
+			if entry.Key != key {
 				continue
 			}
-			blob, err := repo.Blob(blobID)
+			blob, err := repo.Blob(entry.ID)
 			if err != nil {
 				return err
 			}
@@ -237,7 +237,7 @@ func cmdSet(repo *gkv.Repo, key, val string) error {
 	if err := repo.Save(blob); err != nil {
 		return err
 	}
-	index := gkv.NewIndex(map[string]gkv.ID{key: blob.ID()})
+	index := gkv.NewIndex(gkv.IndexEntries{{Key: key, ID: blob.ID()}})
 	if err := repo.Save(index); err != nil {
 		return err
 	}
