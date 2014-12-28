@@ -24,6 +24,9 @@ func realMain() error {
 	backend := gkv.NewFileBackend(*dir)
 	repo := gkv.NewRepo(backend)
 	switch cmd := flag.Arg(0); cmd {
+	case "pull":
+		remote := gkv.NewRepo(gkv.NewFileBackend(flag.Arg(1)))
+		return cmdPull(repo, remote)
 	case "clone":
 		remote := gkv.NewRepo(gkv.NewFileBackend(flag.Arg(1)))
 		return cmdClone(repo, remote)
@@ -42,6 +45,26 @@ func realMain() error {
 	default:
 		return fmt.Errorf("unknown cmd: %s", cmd)
 	}
+}
+
+func cmdPull(local, remote *gkv.Repo) error {
+	//head, err := remote.Head()
+	//if err != nil {
+	//return err
+	//}
+	//for {
+	//remoteCommit, err := remote.Commit(head)
+	//if err != nil {
+	//return err
+	//}
+	//localCommit, err := local.Commit(remoteCommit.ID())
+	//if err == nil {
+	//break
+	//} else if !gkv.IsNotExist(err) {
+	//return err
+	//}
+	//}
+	return nil
 }
 
 func cmdClone(local, remote *gkv.Repo) error {
@@ -134,11 +157,11 @@ func cmdLog(repo *gkv.Repo) error {
 		return err
 	}
 	for {
+		fmt.Printf("commit %s\n", head)
 		commit, err := repo.Commit(head)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("commit %s\n", commit.ID())
 		fmt.Printf("time %s\n", commit.Time())
 		fmt.Printf("index %s\n", commit.Index())
 		fmt.Printf("parent %s\n\n", commit.Parent())
@@ -149,10 +172,11 @@ func cmdLog(repo *gkv.Repo) error {
 		for key, blobID := range index.Entries() {
 			fmt.Printf("  %s %s\n", blobID, key)
 		}
-		head = commit.Parent()
-		if head == gkv.NilID {
+		heads := commit.Parents()
+		if len(heads) == 0 {
 			return nil
 		}
+		head = heads[0]
 		fmt.Printf("\n")
 	}
 }
@@ -214,13 +238,20 @@ func cmdSet(repo *gkv.Repo, key, val string) error {
 	if err := repo.Save(index); err != nil {
 		return err
 	}
+	var heads []gkv.ID
 	head, err := repo.Head()
-	if err != nil && !gkv.IsNotExist(err) {
+	if err == nil {
+		heads = []gkv.ID{head}
+	} else if !gkv.IsNotExist(err) {
 		return err
 	}
-	commit := gkv.NewCommit(time.Now(), index.ID(), head)
+	commit := gkv.NewCommit(time.Now(), index.ID(), heads...)
 	if err := repo.Save(commit); err != nil {
 		return err
 	}
-	return repo.SetHead(commit.ID())
+	if err := repo.SetHead(commit.ID()); err != nil {
+		return err
+	}
+	fmt.Printf("%s\n", commit.ID())
+	return nil
 }
