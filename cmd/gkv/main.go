@@ -164,7 +164,10 @@ func cmdLog(repo *gkv.Repo) error {
 		}
 		fmt.Printf("time %s\n", commit.Time())
 		fmt.Printf("index %s\n", commit.Index())
-		fmt.Printf("parent %s\n\n", commit.Parent())
+		for _, parent := range commit.Parents() {
+			fmt.Printf("parent %s\n", parent)
+		}
+		fmt.Printf("\n")
 		index, err := repo.Index(commit.Index())
 		if err != nil {
 			return err

@@ -13,6 +13,11 @@ import (
 	"time"
 )
 
+type Object interface {
+	ID() ID
+	Canonical() []byte
+}
+
 var NilID = ID{}
 
 func IsNotExist(err error) bool {
@@ -40,11 +45,6 @@ type ID [20]byte
 
 func (id ID) String() string {
 	return fmt.Sprintf("%x", id[:])
-}
-
-type Object interface {
-	ID() ID
-	Canonical() []byte
 }
 
 func NewRepo(b Backend) *Repo {
@@ -110,7 +110,13 @@ func (r *Repo) Load(id ID) (Object, error) {
 		return nil, err
 	}
 	decoder := NewDecoder(bytes.NewBuffer(raw))
-	return decoder.Decode()
+	if obj, err := decoder.Decode(); err != nil {
+		return nil, err
+	} else if gotID := obj.ID(); gotID != id {
+		return nil, fmt.Errorf("corrupt object: got=%s want=%s", gotID, id)
+	} else {
+		return obj, nil
+	}
 }
 
 func (r *Repo) objectPath(id ID) string {
