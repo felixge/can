@@ -147,7 +147,7 @@ func cmdShow(repo *gkv.Repo, id string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s", obj.Raw())
+	fmt.Printf("%s", obj.Canonical())
 	return nil
 }
 

@@ -20,7 +20,7 @@ func IsNotExist(err error) bool {
 }
 
 func NewID(o Object) ID {
-	return sha1.Sum(o.Raw())
+	return sha1.Sum(o.Canonical())
 }
 
 func ParseId(id string) (ID, error) {
@@ -44,7 +44,7 @@ func (id ID) String() string {
 
 type Object interface {
 	ID() ID
-	Raw() []byte
+	Canonical() []byte
 }
 
 func NewRepo(b Backend) *Repo {
@@ -101,7 +101,7 @@ func (r *Repo) Blob(id ID) (*Blob, error) {
 }
 
 func (r *Repo) Save(o Object) error {
-	return r.backend.Save(r.objectPath(o.ID()), o.Raw())
+	return r.backend.Save(r.objectPath(o.ID()), o.Canonical())
 }
 
 func (r *Repo) Load(id ID) (Object, error) {
@@ -203,7 +203,7 @@ func (idx *Index) Entries() map[string]ID {
 	return cp
 }
 
-func (idx *Index) Raw() []byte {
+func (idx *Index) Canonical() []byte {
 	var keys = make(sort.StringSlice, 0, len(idx.entries))
 	for key, _ := range idx.entries {
 		keys = append(keys, key)
@@ -249,7 +249,7 @@ func (c *Commit) Parent() ID {
 	return c.Parents()[0]
 }
 
-func (c *Commit) Raw() []byte {
+func (c *Commit) Canonical() []byte {
 	buf := bytes.NewBuffer(nil)
 	_, offset := c.time.Zone()
 	fmt.Fprintf(buf, "time %d %+d\n", c.time.Unix(), offset)
@@ -277,7 +277,7 @@ func (b *Blob) Val() []byte {
 	return b.val
 }
 
-func (b *Blob) Raw() []byte {
+func (b *Blob) Canonical() []byte {
 	return []byte(fmt.Sprintf("blob %d\n%s\n", len(b.val)+1, b.val))
 }
 

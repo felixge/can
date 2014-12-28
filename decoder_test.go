@@ -64,8 +64,8 @@ func TestDecoder(t *testing.T) {
 		if gotErr != wantErr {
 			t.Errorf("test %d: gotErr=%s wantErr=%s", i, gotErr, wantErr)
 			continue
-		} else if err == nil && string(got.Raw()) != string(test.Want.Raw()) {
-			t.Errorf("test %d: got=%q want=%q", i, got.Raw(), test.Want.Raw())
+		} else if err == nil && string(got.Canonical()) != string(test.Want.Canonical()) {
+			t.Errorf("test %d: got=%q want=%q", i, got.Canonical(), test.Want.Canonical())
 			continue
 		}
 	}
