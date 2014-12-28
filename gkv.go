@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -203,9 +204,14 @@ func (idx *Index) Entries() map[string]ID {
 }
 
 func (idx *Index) Raw() []byte {
+	var keys = make(sort.StringSlice, 0, len(idx.entries))
+	for key, _ := range idx.entries {
+		keys = append(keys, key)
+	}
+	sort.Sort(keys)
 	buf := bytes.NewBuffer(nil)
-	for key, id := range idx.entries {
-		fmt.Fprintf(buf, "%d %s %s\n", len(key), key, id)
+	for _, key := range keys {
+		fmt.Fprintf(buf, "%d %s %s\n", len(key), key, idx.entries[key])
 	}
 	header := []byte(fmt.Sprintf("index %d\n", buf.Len()))
 	return append(header, buf.Bytes()...)
@@ -233,18 +239,20 @@ func (c *Commit) Time() time.Time {
 	return c.time
 }
 
+func (c *Commit) Parents() []ID {
+	cp := make([]ID, len(c.parents))
+	copy(cp, c.parents)
+	return cp
+}
+
 func (c *Commit) Parent() ID {
-	return c.parents[0]
+	return c.Parents()[0]
 }
 
 func (c *Commit) Raw() []byte {
 	buf := bytes.NewBuffer(nil)
 	_, offset := c.time.Zone()
-	sign := "+"
-	if offset < 0 {
-		sign = "-"
-	}
-	fmt.Fprintf(buf, "time %d %s%d\n", c.time.Unix(), sign, offset)
+	fmt.Fprintf(buf, "time %d %+d\n", c.time.Unix(), offset)
 	fmt.Fprintf(buf, "index %s\n", c.index)
 	for _, parent := range c.parents {
 		fmt.Fprintf(buf, "parent %s\n", parent)
@@ -270,7 +278,7 @@ func (b *Blob) Val() []byte {
 }
 
 func (b *Blob) Raw() []byte {
-	return []byte(fmt.Sprintf("blob %d\n%s\n", len(b.val), b.val))
+	return []byte(fmt.Sprintf("blob %d\n%s\n", len(b.val)+1, b.val))
 }
 
 type Backend interface {

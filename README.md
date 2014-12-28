@@ -60,7 +60,7 @@ value  = binary
 Example:
 
 ```
-"blob 12\nHello world\n"
+"blob 12\nHello World\n"
 ```
 
 ### Index
@@ -75,10 +75,12 @@ key      = binary
 blob_id  = id
 ```
 
+Keys must be sorted in ascending byte order.
+
 Example:
 
 ```
-"index 10\n3 foo bar\n"
+"index 94\n3 bar 0a4d55a8d778e5022fab701977c5d840bbc486d0\n3 foo 13a6151685371cc7f1a1b7d2dca999092938e493\n"
 ```
 
 ### Commit
@@ -87,9 +89,9 @@ ABNF:
 
 ```
 commit      = "commit" size "\n"
-             "time " commit_time "\n"
-             *1("index " index_id "\n")
-             1*2("parent " commit_id "\n")
+              "time " commit_time "\n"
+              "index " index_id "\n"
+              1*("parent " commit_id "\n")
 size        = number
 commit_time = time
 index_id    = id
@@ -99,5 +101,5 @@ commit_id   = id
 Example:
 
 ```
-"commit 118\ntime 1418327450 +3600\nindex c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\n"
+"commit 165\ntime 1418327450 -3600\nindex c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\nparent b176e7d983ca7129334dde3779e6f155b3399351\n"
 ```
