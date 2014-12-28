@@ -109,73 +109,8 @@ func (r *Repo) Load(id ID) (Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	buf := bytes.NewBuffer(raw)
-	var (
-		kind string
-		size int64
-	)
-	if _, err := fmt.Fscanf(buf, "%s %d\n", &kind, &size); err != nil {
-		return nil, err
-	}
-	switch kind {
-	case "blob":
-		val := buf.Bytes()
-		val = val[0 : len(val)-1]
-		return &Blob{val: val}, nil
-	case "commit":
-		var (
-			sec    int64
-			offset int
-		)
-		// @TODO support negative offset
-		if _, err := fmt.Fscanf(buf, "time %d %d\n", &sec, &offset); err != nil {
-			return nil, err
-		}
-		t := time.Unix(sec, 0).In(time.FixedZone("", offset))
-		var index string
-		if _, err := fmt.Fscanf(buf, "index %s\n", &index); err != nil {
-			return nil, err
-		}
-		indexID, err := ParseId(index)
-		if err != nil {
-			return nil, fmt.Errorf("bad index: %s", err)
-		}
-		var parent string
-		if _, err := fmt.Fscanf(buf, "parent %s\n", &parent); err != nil {
-			return nil, err
-		}
-		parentID, err := ParseId(parent)
-		if err != nil {
-			return nil, fmt.Errorf("bad parent: %s", err)
-		}
-		return &Commit{time: t, index: indexID, parents: []ID{parentID}}, nil
-	case "index":
-		entries := map[string]ID{}
-		for buf.Len() > 0 {
-			var keySize int
-			if _, err := fmt.Fscanf(buf, "%d ", &keySize); err != nil {
-				return nil, err
-			}
-			key := make([]byte, keySize)
-			if n, err := buf.Read(key); err != nil {
-				return nil, err
-			} else if n != keySize {
-				return nil, fmt.Errorf("short read")
-			}
-			var blobIDStr string
-			if _, err := fmt.Fscanf(buf, " %s\n", &blobIDStr); err != nil {
-				return nil, err
-			}
-			blobID, err := ParseId(blobIDStr)
-			if err != nil {
-				return nil, err
-			}
-			entries[string(key)] = blobID
-		}
-		return &Index{entries: entries}, nil
-	default:
-		return nil, fmt.Errorf("unknown object kind: %s", kind)
-	}
+	decoder := NewDecoder(bytes.NewBuffer(raw))
+	return decoder.Decode()
 }
 
 func (r *Repo) objectPath(id ID) string {
