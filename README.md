@@ -85,5 +85,5 @@ parent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429
 parent b176e7d983ca7129334dde3779e6f155b3399351
 time 1424434473 +3600
 
-hi,\n\nhow are you?
+hi, how are you?
 ```
