@@ -1,6 +1,6 @@
 **Work in progress:** Nothing to see here yet. This is highly experimental.
 
-# Can - The airtight database for your personal data!
+# Can - The airtight database for personal data
 
 Can is a a key value store suitable for small data (up to 1 million documents),
 focused on portability, fast syncronization, reliability and encryption.
