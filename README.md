@@ -40,7 +40,8 @@ value  = binary
 Example:
 
 ```
-"blob\nHello World"
+blob
+Hello World
 ```
 
 ### Tree
@@ -59,7 +60,9 @@ Keys must be sorted in ascending byte order.
 Example:
 
 ```
-"tree\nblob 0a4d55a8d778e5022fab701977c5d840bbc486d0 2 hi\tree 13a6151685371cc7f1a1b7d2dca999092938e493 12 how are you?\n"
+tree
+blob 0a4d55a8d778e5022fab701977c5d840bbc486d0 2 hi
+tree 13a6151685371cc7f1a1b7d2dca999092938e493 12 how are you?
 ```
 
 ### Commit
@@ -67,12 +70,7 @@ Example:
 ABNF:
 
 ```
-commit      = "commit\n"
-              "tree " tree_id "\n"
-              1*("parent " parent_id "\n")
-              "time " time "\n"
-              "\n"
-              message
+commit     = "commit\n" "tree " tree_id "\n" 1*("parent " parent_id "\n") "time " time "\n" "\n" message
 tree_id   = id
 parent_id = id
 message   = binary
@@ -81,5 +79,11 @@ message   = binary
 Example:
 
 ```
-"commit\ntree c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\nparent b176e7d983ca7129334dde3779e6f155b3399351\ntime 1424434473 +3600\n\nhi,\n\nhow are you?"
+commit
+tree c82a9efd857f436e0ececd7986cb8611b6b8f84e
+parent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429
+parent b176e7d983ca7129334dde3779e6f155b3399351
+time 1424434473 +3600
+
+hi,\n\nhow are you?
 ```
