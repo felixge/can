@@ -1,42 +1,23 @@
 **Work in progress:** Nothing to see here yet. This is highly experimental.
 
-# GKV
+# Can - The airtight database for your personal data!
 
-GKV is a Git inspired low-level key value store.
+Can is a a key value store suitable for small data (up to 1 million documents),
+focused on portability, fast syncronization, reliability and encryption.
 
-## Comparison to similar projects
-
-The main goal of GKV is to create a simple low-level database suitable for
-offline usage across many devices with good support for syncing and conflict
-resolution supporting up to 1 million records.
-
-### Git
-
-Each git commit references a full tree object. This works fine for git, as most
-repositories are laid out in a hierarchical manner, causing the top level tree
-object to be usually small. A key value store however may have hundreds of
-thousands of top level keys without any hierarchies. For this reason GKV
-commits reference partial indexes, which include only the key value pairs that
-have changed. This greatly reduces the costs for writing and syncing data, but
-introduces a O(N) cost for naive key lookups. However, this can be turned into
-a one time costs by keeping a cache of the current index.
-
-Additionally git includes many advanced optimizations such as pack files which
-makes it non-trivial to create native clients.
-
-### CouchDB
-
-To be written ...
+It is based on Git's data model, but does not implement complex optimizations
+such as packfiles which would reduce portability and are of limited use for
+encrypted repositories.
 
 ## Objects
 
-GKV uses the following object types for storing data:
+Can implements the following data types from Git:
 
 * blob: Stores raw values.
-* index: Maps key strings to value hashes. Similar to trees in git.
-* commit: References previous commits and indexes.
+* tree: Maps key strings to blob or tree ids.
+* commit: References previous commits and trees.
 
-The basic object format is given in ABNF with the following recurring rules:
+The canonical data format is given in ABNF with the following recurring rules:
 
 ```
 number    = 1*DIGIT
@@ -52,27 +33,25 @@ offset    = ( "+" / "-" ) number
 ABNF:
 
 ```
-blob   = "blob " size "\n" value "\n"
-size   = number
+blob   = "blob \n" value
 value  = binary
 ```
 
 Example:
 
 ```
-"blob 12\nHello World\n"
+"blob\nHello World"
 ```
 
-### Index
+### Tree
 
 ABNF:
 
 ```
-index    = "index " size "\n" 1*(keysize " " key " " blob_id "\n")
-size     = number
+index    = "tree\n" 1*(kind " " id " " keysize " " key)
+kind     = ( "tree" / "blob" )
 keysize  = number
 key      = binary
-blob_id  = id
 ```
 
 Keys must be sorted in ascending byte order.
@@ -80,7 +59,7 @@ Keys must be sorted in ascending byte order.
 Example:
 
 ```
-"index 94\n3 bar 0a4d55a8d778e5022fab701977c5d840bbc486d0\n3 foo 13a6151685371cc7f1a1b7d2dca999092938e493\n"
+"tree\nblob 0a4d55a8d778e5022fab701977c5d840bbc486d0 2 hi\tree 13a6151685371cc7f1a1b7d2dca999092938e493 12 how are you?\n"
 ```
 
 ### Commit
@@ -88,18 +67,19 @@ Example:
 ABNF:
 
 ```
-commit      = "commit" size "\n"
-              "time " commit_time "\n"
-              "index " index_id "\n"
-              1*("parent " commit_id "\n")
-size        = number
-commit_time = time
-index_id    = id
-commit_id   = id
+commit      = "commit\n"
+              "tree " tree_id "\n"
+              1*("parent " parent_id "\n")
+              "time " time "\n"
+              "\n"
+              message
+tree_id   = id
+parent_id = id
+message   = binary
 ```
 
 Example:
 
 ```
-"commit 165\ntime 1418327450 -3600\nindex c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\nparent b176e7d983ca7129334dde3779e6f155b3399351\n"
+"commit\ntree c82a9efd857f436e0ececd7986cb8611b6b8f84e\nparent 119be3a4d2e8eef6fbf1e86d817fe58a452cf429\nparent b176e7d983ca7129334dde3779e6f155b3399351\ntime 1424434473 +3600\n\nhi,\n\nhow are you?"
 ```
