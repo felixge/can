@@ -94,7 +94,7 @@ func (f *defaultFormat) DecodeTree(r io.Reader) (Tree, error) {
 			return nil, err
 		} else if id, err := b.ReadString(' '); err != nil {
 			return nil, err
-		} else if id, err := ParseId(id[:len(id)-1]); err != nil {
+		} else if id, err := ParseID(id[:len(id)-1]); err != nil {
 			return nil, err
 		} else if nameLen, err := b.ReadString(' '); err != nil {
 			return nil, err
@@ -154,13 +154,13 @@ fields:
 			field = field[:len(field)-1]
 			switch field {
 			case "tree":
-				if id, err := ParseId(val); err != nil {
+				if id, err := ParseID(val); err != nil {
 					return commit, err
 				} else {
 					commit.Tree = id
 				}
 			case "parent":
-				if id, err := ParseId(val); err != nil {
+				if id, err := ParseID(val); err != nil {
 					return commit, err
 				} else {
 					commit.Parents = append(commit.Parents, id)

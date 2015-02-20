@@ -32,7 +32,7 @@ type Repo interface {
 }
 
 // ParseID parses the given hex id string into an ID, or returns an error.
-func ParseId(id string) (ID, error) {
+func ParseID(id string) (ID, error) {
 	if id == "" {
 		return nil, nil
 	} else if d, err := hex.DecodeString(id); err != nil {
@@ -44,7 +44,7 @@ func ParseId(id string) (ID, error) {
 
 // MustID returns the ID for the given hex id, or panics on error.
 func MustID(id string) ID {
-	r, err := ParseId(id)
+	r, err := ParseID(id)
 	if err != nil {
 		panic(err)
 	}
