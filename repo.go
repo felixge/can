@@ -10,13 +10,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
 // Repo provides access to a can repository.
 type Repo interface {
-	//Head() (ID, error)
-	//WriteHead(ID) error
+	// Head returns the ID of the head commit.
+	Head() (ID, error)
+	// WriteHead sets the ID of the head commit.
+	WriteHead(ID) error
 	// Blob returns the Blob for the given id.
 	Blob(id ID) (io.ReadCloser, error)
 	// WriteBlob store the given Blob and returns its id.
@@ -65,12 +68,41 @@ func (id ID) Equal(other ID) bool {
 	return bytes.Compare(id, other) == 0
 }
 
-// Tree holds a list of entries.
-type Tree []Entry
+// Tree holds a list of entries, sorted by name in ascending order.
+type Tree []*Entry
 
 func (t Tree) Len() int           { return len(t) }
 func (t Tree) Less(i, j int) bool { return t[i].Name < t[j].Name }
 func (t Tree) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
+
+// Get returns the Entry with the given name, or nil if it does not exist. The
+// tree must be sorted prior to calling Get.
+func (t Tree) Get(name string) *Entry {
+	if i := t.index(name); i >= 0 {
+		return t[i]
+	}
+	return nil
+}
+
+// Add adds or updates the given entry and returns the resulting tree.
+func (t Tree) Add(entry *Entry) Tree {
+	if i := t.index(entry.Name); i >= 0 {
+		t[i] = entry
+	} else {
+		t = append(t, entry)
+	}
+	return t
+}
+
+func (t Tree) index(name string) int {
+	i := sort.Search(len(t), func(i int) bool {
+		return t[i].Name >= name
+	})
+	if i < len(t) && t[i].Name == name {
+		return i
+	}
+	return -1
+}
 
 // Entry defines a Tree entry.
 type Entry struct {
@@ -79,13 +111,18 @@ type Entry struct {
 	ID   ID
 }
 
+// Equal returns if one entry is equal to the another.
+func (e *Entry) Equal(other *Entry) bool {
+	return e.Kind == other.Kind && e.Name == other.Name && e.ID.Equal(other.ID)
+}
+
 // Kind represents the kind of objects Kit deals with.
 type Kind string
 
 const (
-	KindBlob   = "blob"
-	KindTree   = "tree"
-	KindCommit = "commit"
+	KindBlob   Kind = "blob"
+	KindTree   Kind = "tree"
+	KindCommit Kind = "commit"
 )
 
 // Commit defines a commit object.
@@ -96,27 +133,63 @@ type Commit struct {
 	Message []byte
 }
 
-func NewDirRepo(path string) (Repo, error) {
-	rp := &dirRepo{
-		tmp:    filepath.Join(path, "tmp"),
-		obj:    filepath.Join(path, "obj"),
-		format: NewDefaultFormat(),
+func IsNotFound(err error) bool {
+	if nf, ok := err.(NotFounder); ok {
+		return nf.NotFound()
 	}
-	for _, dir := range []string{rp.tmp, rp.obj} {
-		if err := os.MkdirAll(dir, 0777); err != nil {
-			return nil, err
-		}
-	}
-	return rp, nil
+	return os.IsNotExist(err)
 }
 
-type dirRepo struct {
+type notFoundError string
+
+func (n notFoundError) Error() string  { return string(n) }
+func (n notFoundError) NotFound() bool { return true }
+
+type NotFounder interface {
+	NotFound() bool
+}
+
+func NewDirRepo(path string) *DirRepo {
+	return &DirRepo{
+		tmp:    filepath.Join(path, "tmp"),
+		obj:    filepath.Join(path, "obj"),
+		head:   filepath.Join(path, "head"),
+		format: NewDefaultFormat(),
+	}
+}
+
+// Check Repo interface compliance
+var _ = Repo(&DirRepo{})
+
+type DirRepo struct {
 	tmp    string
 	obj    string
+	head   string
 	format Format
 }
 
-func (d *dirRepo) Blob(id ID) (io.ReadCloser, error) {
+func (d *DirRepo) Init() error {
+	for _, dir := range []string{d.tmp, d.obj} {
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DirRepo) Head() (ID, error) {
+	if head, err := ioutil.ReadFile(d.head); err != nil {
+		return nil, err
+	} else {
+		return ParseID(string(head))
+	}
+}
+
+func (d *DirRepo) WriteHead(id ID) error {
+	return ioutil.WriteFile(d.head, []byte(id.String()), 0600)
+}
+
+func (d *DirRepo) Blob(id ID) (io.ReadCloser, error) {
 	file, err := os.Open(d.path(id))
 	if err != nil {
 		return nil, err
@@ -130,11 +203,11 @@ func (d *dirRepo) Blob(id ID) (io.ReadCloser, error) {
 	return NewReadCloser(r, file), nil
 }
 
-func (d *dirRepo) WriteBlob(r io.Reader) (ID, error) {
+func (d *DirRepo) WriteBlob(r io.Reader) (ID, error) {
 	return d.write(r)
 }
 
-func (d *dirRepo) Tree(id ID) (Tree, error) {
+func (d *DirRepo) Tree(id ID) (Tree, error) {
 	file, err := os.Open(d.path(id))
 	if err != nil {
 		return nil, err
@@ -148,11 +221,11 @@ func (d *dirRepo) Tree(id ID) (Tree, error) {
 	return tree, nil
 }
 
-func (d *dirRepo) WriteTree(t Tree) (ID, error) {
+func (d *DirRepo) WriteTree(t Tree) (ID, error) {
 	return d.write(t)
 }
 
-func (d *dirRepo) Commit(id ID) (Commit, error) {
+func (d *DirRepo) Commit(id ID) (Commit, error) {
 	file, err := os.Open(d.path(id))
 	if err != nil {
 		return Commit{}, err
@@ -166,11 +239,11 @@ func (d *dirRepo) Commit(id ID) (Commit, error) {
 	return commit, nil
 }
 
-func (d *dirRepo) WriteCommit(c Commit) (ID, error) {
+func (d *DirRepo) WriteCommit(c Commit) (ID, error) {
 	return d.write(c)
 }
 
-func (d *dirRepo) write(o interface{}) (ID, error) {
+func (d *DirRepo) write(o interface{}) (ID, error) {
 	tmpFile, err := ioutil.TempFile(d.tmp, "")
 	if err != nil {
 		return nil, err
@@ -196,7 +269,7 @@ func (d *dirRepo) write(o interface{}) (ID, error) {
 	}
 	id := iw.ID()
 	path := d.path(id)
-	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, err
 	}
 	if err := os.Rename(tmpFile.Name(), path); err != nil {
@@ -205,7 +278,7 @@ func (d *dirRepo) write(o interface{}) (ID, error) {
 	return id, nil
 }
 
-func (d *dirRepo) path(id ID) string {
+func (d *DirRepo) path(id ID) string {
 	s := id.String()
 	return filepath.Join(d.obj, s[0:2], s[2:])
 }

@@ -103,7 +103,7 @@ func (f *defaultFormat) DecodeTree(r io.Reader) (Tree, error) {
 		} else if name, err := ioutil.ReadAll(io.LimitReader(b, nameLen+1)); err != nil {
 			return nil, err
 		} else {
-			tree = append(tree, Entry{
+			tree = append(tree, &Entry{
 				Kind: Kind(kind[:len(kind)-1]),
 				ID:   id,
 				Name: string(name[:len(name)-1]),

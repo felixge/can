@@ -13,20 +13,13 @@ import (
 )
 
 func Test_DirRepo(t *testing.T) {
-	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	k, err := NewDirRepo(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	rp := tmpRepo()
 	blobs := map[string][]byte{
 		"0cd5a7d8dc5a48bb59c0205146e4aac675dfe74a": []byte("Hello"),
 		"054f22c17948d775ac4b327c7987c7acff4b8d64": []byte("World"),
 	}
 	for idS, data := range blobs {
-		testBlob(t, k, data, MustID(idS))
+		testBlob(t, rp, data, MustID(idS))
 	}
 	trees := map[string]Tree{
 		"29ee187f331966f235b3f67404b71e812f893825": Tree{
@@ -43,9 +36,9 @@ func Test_DirRepo(t *testing.T) {
 		},
 	}
 	for idS, tree := range trees {
-		testTree(t, k, tree, MustID(idS))
+		testTree(t, rp, tree, MustID(idS))
 		sort.Sort(sort.Reverse(tree))
-		testTree(t, k, tree, MustID(idS))
+		testTree(t, rp, tree, MustID(idS))
 	}
 	commits := map[string]Commit{
 		"04f81807bae3f1091ef8c7feb475430432cfd7e3": Commit{
@@ -62,7 +55,7 @@ func Test_DirRepo(t *testing.T) {
 		},
 	}
 	for idS, commit := range commits {
-		testCommit(t, k, commit, MustID(idS))
+		testCommit(t, rp, commit, MustID(idS))
 	}
 }
 
